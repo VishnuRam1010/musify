@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline Music Player</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+      background: linear-gradient(45deg, #6a11cb, #2575fc);
+      background-size: 300% 300%;
+      animation: gradientAnimation 15s ease infinite;
+    }
+
+    @keyframes gradientAnimation {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .player {
+      width: 400px;
+      text-align: center;
+      padding: 20px;
+      border-radius: 15px;
+      background: rgba(0, 0, 0, 0.6);
+      box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .folder-button {
+      margin-bottom: 15px;
+      padding: 10px 20px;
+      font-size: 14px;
+      color: #fff;
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      border-radius: 25px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .folder-button:hover {
+      box-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
+      transform: scale(1.1);
+    }
+
+    .controls {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      margin-top: 20px;
+    }
+
+    .btn {
+      font-size: 24px;
+      color: #fff;
+      background: rgba(255, 255, 255, 0.2);
+      padding: 15px;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .btn:hover {
+      box-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
+      transform: scale(1.2);
+    }
+
+    .progress-bar {
+      margin: 20px 0;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 3px;
+      overflow: hidden;
+      position: relative;
+      cursor: pointer;
+    }
+
+    .progress {
+      height: 100%;
+      background: #fff;
+      width: 0%;
+    }
+
+    .time {
+      display: flex;
+      justify-content: space-between;
+      color: #fff;
+      font-size: 12px;
+      margin-top: 10px;
+    }
+    
+    h1 {
+      color: #fff;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>MusiFy.com</h1>
+  <div class="player">
+    <button class="folder-button" id="folder-button">Select Folder</button>
+    <h2 style="color: #fff;" id="song-title">No Song Selected</h2>
+    <div class="progress-bar" id="progress-bar">
+      <div class="progress" id="progress"></div>
+    </div>
+    <div class="time">
+      <span id="start-time">0:00</span>
+      <span id="end-time">0:00</span>
+    </div>
+    <div class="controls">
+      <div class="btn" id="prev">⏮</div>
+      <div class="btn" id="play-pause">▶️</div>
+      <div class="btn" id="next">⏭</div>
+    </div>
+  </div>
+
+  <script>
+    const playPauseButton = document.getElementById("play-pause");
+    const folderButton = document.getElementById("folder-button");
+    const songTitle = document.getElementById("song-title");
+    const progressBar = document.getElementById("progress-bar");
+    const progress = document.getElementById("progress");
+    const startTime = document.getElementById("start-time");
+    const endTime = document.getElementById("end-time");
+    const audio = new Audio();
+    let songIndex = 0;
+    let songs = [];
+    let isPlaying = false;
+
+    // Play and Pause Song
+    function togglePlayPause() {
+      if (songs.length === 0) {
+        alert("Please select a folder with songs first!");
+        return;
+      }
+      if (isPlaying) {
+        audio.pause();
+        playPauseButton.textContent = "▶️";
+      } else {
+        audio.play();
+        playPauseButton.textContent = "⏸";
+      }
+      isPlaying = !isPlaying;
+    }
+
+    // Previous Song
+    function playPrevious() {
+      if (songs.length === 0) {
+        alert("Please select a folder with songs first!");
+        return;
+      }
+      songIndex = (songIndex - 1 + songs.length) % songs.length;
+      loadSong();
+    }
+
+    // Next Song
+    function playNext() {
+      if (songs.length === 0) {
+        alert("Please select a folder with songs first!");
+        return;
+      }
+      songIndex = (songIndex + 1) % songs.length;
+      loadSong();
+    }
+
+    // Load Song
+    function loadSong() {
+      if (songs.length > 0) {
+        audio.src = URL.createObjectURL(songs[songIndex]);
+        songTitle.textContent = songs[songIndex].name;
+        audio.play();
+        playPauseButton.textContent = "⏸";
+        isPlaying = true;
+      }
+    }
+
+    // Update Progress Bar and Time
+    function updateProgress() {
+      const currentTime = audio.currentTime;
+      const duration = audio.duration;
+      const progressPercent = (currentTime / duration) * 100;
+      progress.style.width = `${progressPercent}%`;
+      startTime.textContent = formatTime(currentTime);
+      endTime.textContent = formatTime(duration);
+    }
+
+    // Seek to Clicked Position
+    progressBar.addEventListener("click", (e) => {
+      const width = progressBar.clientWidth;
+      const clickX = e.offsetX;
+      const duration = audio.duration;
+      audio.currentTime = (clickX / width) * duration;
+    });
+
+    // Format Time
+    function formatTime(time) {
+      const minutes = Math.floor(time / 60);
+      const seconds = Math.floor(time % 60);
+      return `${minutes}:${seconds < 10 ? "0" + seconds : seconds}`;
+    }
+
+    // Folder Selection
+    folderButton.addEventListener("click", async () => {
+      const handle = await window.showDirectoryPicker();
+      songs = [];
+      for await (const entry of handle.values()) {
+        if (entry.kind === "file" && entry.name.endsWith(".mp3")) {
+          const file = await entry.getFile();
+          songs.push(file);
+        }
+      }
+      if (songs.length > 0) {
+        songIndex = 0;
+        loadSong();
+      } else {
+        alert("No MP3 files found in the selected folder.");
+        songTitle.textContent = "No Song Selected";
+        audio.src = "";
+        isPlaying = false;
+        playPauseButton.textContent = "▶️";
+      }
+    });
+
+    // Event Listeners
+    playPauseButton.addEventListener("click", togglePlayPause);
+    document.getElementById("prev").addEventListener("click", playPrevious);
+    document.getElementById("next").addEventListener("click", playNext);
+    audio.addEventListener("timeupdate", updateProgress);
+
+    // Keyboard Control
+    document.body.addEventListener("keydown", (e) => {
+      if (e.code === "Space") {
+        togglePlayPause();
+        e.preventDefault(); // Prevent spacebar scrolling the page
+      } else if (e.code === "ArrowLeft") {
+        playPrevious();
+      } else if (e.code === "ArrowRight") {
+        playNext();
+      } else if (e.code === "ArrowRight" && e.altKey) {
+        audio.currentTime += 10; // Fast forward 10 seconds
+        e.preventDefault();
+      } else if (e.code === "ArrowLeft" && e.altKey) {
+        audio.currentTime -= 10; // Fast reverse 10 seconds
+        e.preventDefault();
+      }
+    });
+  </script>
+</body>
+</html>
